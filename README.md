@@ -127,3 +127,32 @@ docker compose up --build
 - **ポート衝突**: ホストですでに 5432 / 6379 を使っているなら `compose.yaml` のホスト側を `15432:5432` のように変える (`.env.local` も合わせて変更)
 - **ビルドが極端に遅い**: `.dockerignore` が効いているか確認。`node_modules` `.next` が build context に含まれていないこと
 - **dev もコンテナで動かしたい**: macOS + Colima の bind-mount は遅め。学習目的を超えて開発体験が必要な場合のみ検討
+
+---
+
+## 次の学習トピック (Step 4 のあと)
+
+Step 1〜4 を終えた後、さらに踏み込みたいときの題材。おすすめは A → B の順 (Dockerfile を読めるようになると `.dockerignore` の効果も理解しやすい)。
+
+### A. Dockerfile の中身を読み解く
+
+`Dockerfile` のマルチステージ (deps → builder → runner) と `output: 'standalone'` の効果をレイヤー単位で観察する。
+
+```bash
+docker history colima-test-web
+docker image inspect colima-test-web | jq '.[0].Config'
+```
+
+→ なぜイメージが軽いのか、何が runner ステージにコピーされているのかが見える。
+
+### B. `.dockerignore` の効きを実験する
+
+`.dockerignore` から `node_modules` を一時的に外してビルドし、build context のサイズと所要時間がどう変わるかを比較する。「ビルドが遅いときに最初に疑うところ」の感覚が掴める。
+
+### C. ヘルスチェックと `depends_on` の挙動を壊して観察する
+
+わざと PostgreSQL の起動を遅らせて、`depends_on.condition: service_healthy` が無いと web 側でどう壊れるかを再現する。順序問題が体感できる。
+
+### D. dev もコンテナ化する (bind mount)
+
+`compose.yaml` に dev 用 service を足してソースを bind mount し、ホットリロードする構成を試す。macOS + Colima の bind mount の遅さも実感できる。
